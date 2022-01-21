@@ -1,0 +1,74 @@
+version: "3.1"
+
+services:
+  odoo:
+    image: odoo:14.0
+    container_name: ${CONTAINER_ODOO_NAME}
+    restart: unless-stopped
+    depends_on:
+      - pgsql
+    environment:
+      - TZ=${HOST_TZ}
+      - HOST=${CONTAINER_PGSQL_NAME}
+      - USER=${PGSQL_USER}
+      - PASSWORD=${PGSQL_PASS}
+      - VIRTUAL_HOST=${ODOO_HOSTNAME}
+      - VIRTUAL_PORT=${ODOO_PORT}
+    volumes:
+      - odoo-data:/var/lib/odoo
+      - ${ODOO_CONF_PATH}:/etc/odoo
+      - ${ODOO_ADDON_PATH}:/mnt/extra-addons
+    ports:
+      - "${ODOO_PORT}:${ODOO_PORT}"
+    networks:
+      - my-net
+
+  pgsql:
+    image: postgres:13
+    container_name: ${CONTAINER_PGSQL_NAME}
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${PGSQL_DB}
+      - POSTGRES_USER=${PGSQL_USER}
+      - POSTGRES_PASSWORD=${PGSQL_PASS}
+    volumes:
+      - pgsql-data:/var/lib/postgresql/data
+    networks:
+      - my-net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ${CONTAINER_PGADMIN_NAME}
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_MAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASS}
+      - PGADMIN_LISTEN_PORT=${PGADMIN_PORT}
+      - VIRTUAL_HOST=${PGADMIN_HOSTNAME}
+      - VIRTUAL_PORT=${PGADMIN_PORT}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT}:${PGADMIN_PORT}"
+    networks:
+      - my-net
+
+  nginx:
+    image: jwilder/nginx-proxy
+    container_name: ${CONTAINER_NGINX_NAME}
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    ports:
+      - "80:80"
+    networks:
+      - my-net
+
+volumes:
+  odoo-data:
+  pgsql-data:
+  pgadmin-data:
+
+networks:
+    my-net:
